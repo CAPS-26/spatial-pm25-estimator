@@ -1,0 +1,17 @@
+# Phase 1: Data Extraction & Preparation
+numpy
+pandas
+geopandas
+shapely
+rasterio
+xarray
+netCDF4
+rioxarray
+ipykernel
+
+# Later Phases: Feature Engineering, Modeling, and Mapping (to be installed later)
+# scikit-learn
+# matplotlib
+# seaborn
+# folium
+# joblib
