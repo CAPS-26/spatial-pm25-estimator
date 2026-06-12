@@ -44,7 +44,12 @@ Melalui penelusuran FTP ke server `ftp.ptree.jaxa.jp`, struktur penyimpanan data
 ### ☀️ Karakteristik Deteksi AOD
 * **Variabel Target**: Di dalam file NetCDF milik JAXA, nama variabel AOD ditulis sebagai **`AOT` (Aerosol Optical Thickness)**, yang secara fisis bermakna sama dengan AOD.
 * **Batasan Siang Hari (Daytime Only)**: AOD diukur dengan memanfaatkan pantulan cahaya matahari pada partikel aerosol. Oleh karena itu, data AOD **hanya tersedia pada siang hari** (pukul **00:00 s.d. 09:00 UTC** atau **07:00 s.d. 16:00 WIB**). Pada malam hari, folder jam di FTP JAXA tidak dibuat, dan nilai AOD bernilai `NaN`.
-* **Kendala Awan (Cloud Cover)**: Saat musim hujan (seperti Januari 2023), tutupan awan di Jawa bagian barat sangat tebal. Berdasarkan tes empiris, piksel valid terdekat dari Jakarta pada 1 Januari 2023 berjarak **395.86 km** (di dekat Yogyakarta). Hal ini membuktikan bahwa interpolasi spasial radius dekat tidak layak digunakan saat mendung tebal.
+* **Kenyataan Tutupan Awan (Cloud Cover) Jakarta**:
+  * Berdasarkan ekstraksi data penuh dari tahun 2023 s.d. 2026 (54.850 jam siang total), **91.31% data AOD bernilai kosong (NaN)**. Hanya **8.69% (4.766 jam)** yang memiliki data valid.
+  * Persentase kekosongan per stasiun berkisar antara **87.7%** (Kelapa Gading Indah) hingga **92.8%** (Jagakarsa).
+  * Hal ini membuktikan bahwa tutupan awan di Jakarta sangat dominan sepanjang tahun (bahkan di musim kemarau), sehingga metode pengisian AOD spasial murni (Opsi 1) tidak layak digunakan secara mandiri.
+* **Korelasi AOD vs PM2.5**:
+  * Hasil uji korelasi Pearson antara AOD satelit dan PM2.5 darat (pada jam-jam cerah) menghasilkan nilai **`R = 0.2779`** (korelasi positif yang lemah-sedang).
 
 ---
 
@@ -64,6 +69,7 @@ Karena RFR dalam scikit-learn membutuhkan data tanpa `NaN` (yang banyak terjadi 
 * RFR (pohon keputusan) secara otomatis akan belajar membagi cabang (*split*):
   * **Cabang AOD < 0 (Mendung/Malam)**: RFR mengabaikan AOD dan mengandalkan fitur cuaca untuk memprediksi PM2.5.
   * **Cabang AOD >= 0 (Cerah)**: RFR menggunakan kombinasi cuaca dan nilai AOD satelit untuk akurasi maksimal.
+
 
 ### 3. Downscaling Spasial pada Tahap Pemetaan (Mapping)
 Saat memprediksi PM2.5 di ribuan titik grid 1 km × 1 km Jakarta pada Fase 5, model RFR akan menghasilkan estimasi PM2.5 yang sangat halus, unik, dan detail di setiap grid karena koordinat dan data AOD satelit yang diinputkan unik di setiap piksel 1 km. Ini adalah teknik pemetaan yang valid dan diakui secara akademis.
