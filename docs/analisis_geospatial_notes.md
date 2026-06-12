@@ -91,3 +91,24 @@ Jika menambahkan titik-titik stasiun di kota penyangga sekitar Jakarta (misal: *
 * Hal ini memberikan variasi data target PM2.5 ($Y$) yang riil dan unik (misalnya, udara Kepulauan Seribu jauh lebih bersih, sedangkan Bekasi lebih berpolusi karena faktor industri).
 * Model Random Forest akan belajar mendeteksi gradien dan pola dispersi polusi lintas kota secara nyata, yang secara drastis meningkatkan kemampuan model untuk melakukan prediksi di wilayah baru (*generalization*).
 
+---
+
+## 6. Desain Fitur Machine Learning (Feature Engineering)
+
+Saat mempersiapkan dataset untuk Random Forest Regressor (RFR), terdapat dua aturan desain penting yang diterapkan dalam proyek ini:
+
+### 1. Mengapa Kita Tidak Menggunakan Fitur Lag PM2.5?
+Dalam pemodelan data runtun waktu (*time-series forecasting*), nilai PM2.5 di jam sebelumnya ($T-1$, $T-2$) adalah prediktor yang sangat kuat. Namun, dalam konteks **estimasi spasial (spatial mapping/downscaling)**:
+* **Tujuan Akhir**: Memprediksi polusi PM2.5 di wilayah baru yang **tidak memiliki sensor pemantau sama sekali** (Phase 5).
+* **Kendala**: Di wilayah baru tersebut, kita tidak memiliki sensor darat untuk memberi tahu model berapa nilai PM2.5 pada $T-1$.
+* **Keputusan**: Kita **wajib mengabaikan** fitur lag PM2.5 dari model agar model dapat melakukan prediksi murni menggunakan data satelit AOD dan cuaca di wilayah tanpa stasiun.
+
+### 2. Mengapa Arah Angin Harus Didekomposisi?
+Arah angin diukur dalam derajat lingkaran (0° hingga 360°), yang merupakan fitur sirkular.
+* **Masalah pada Decision Trees (Random Forest)**: Model pohon keputusan membagi data berdasarkan ambang batas linier ($X_i \le \theta$). Arah angin 359° (Utara-Barat Laut) secara fisik sangat dekat dengan 1° (Utara-Timur Laut). Namun, Random Forest akan membacanya secara numerik sebagai dua nilai yang sangat berjauhan (satu mendekati maksimum, satu mendekati minimum).
+* **Solusi (Dekomposisi Vektor)**: Kita mengubah kecepatan angin ($ws$) dan arah angin dalam radian ($\theta_{rad}$) menjadi komponen vektor angin Timur-Barat ($u$) dan Utara-Selatan ($v$):
+  $$u = ws \times \cos(\theta_{rad})$$
+  $$v = ws \times \sin(\theta_{rad})$$
+* **Manfaat**: Metode ini melestarikan kedekatan fisis arah angin (misalnya, arah 359° dan 1° akan memiliki nilai $u$ dan $v$ yang sangat dekat), sehingga Random Forest dapat memproses arah angin secara akurat untuk mendeteksi adveksi (pergerakan) polutan.
+
+
