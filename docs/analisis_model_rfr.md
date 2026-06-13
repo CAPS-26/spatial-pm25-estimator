@@ -7,8 +7,8 @@ Metode **Group-LOSOCV** digunakan untuk menguji kemampuan transferabilitas spasi
 | Konfigurasi Model (Tanpa Koordinat) | $R^2$ Spasial | RMSE ($\mu g/m^3$) | MAE ($\mu g/m^3$) | Kenaikan Performa |
 | :--- | :---: | :---: | :---: | :---: |
 | **Random Forest Baseline** | 0.1629 | 28.05 | 20.92 | Baseline |
-| **Random Forest + Weather Lags (Tuned)** | 0.1945 | 27.50 | 20.62 | +3.16% |
-| **Extra Trees + Weather Lags (Tuned - Final)** | **0.2320** | **26.84** | **20.02** | **+6.91%** |
+| **Random Forest + Weather Lags (Tuned)** | 0.1883 | 27.59 | 20.73 | +2.54% |
+| **Extra Trees + Weather Lags (Tuned)** | **0.2235** | **26.97** | **20.18** | **+6.06%** |
 
 ### 📊 Rincian Performa Stasiun Model Terbaik (Extra Trees Tuned + Lags)
 
@@ -19,10 +19,10 @@ Metode **Group-LOSOCV** digunakan untuk menguji kemampuan transferabilitas spasi
 | **Menteng** (Jakarta Pusat) | 0.1323 | 26.26 | 20.31 | Rendah |
 | **Kelapa Gading Indah** (Jakarta Utara) | 0.0840 | 26.98 | 20.64 | Sangat Rendah |
 | **Slipi** (Jakarta Barat) | 0.0378 | 27.65 | 21.45 | Sangat Rendah |
-| **RATA-RATA GLOBAL** | **0.2320** | **26.84** | **20.02** | **Cukup / Rendah** |
+| **RATA-RATA GLOBAL** | **0.2235** | **26.97** | **20.18** | **Cukup / Rendah** |
 
 > [!NOTE]
-> Dengan mengisolasi kebocoran spasial, kita mengidentifikasi kemampuan transfer spasial model yang sesungguhnya. Melalui rekayasa fitur **Weather Lags** (menangkap inersia atmosfer) dan algoritma **Extra Trees** teroptimasi, kita berhasil mendongkrak $R^2$ spasial global sebesar **+6.91%** dari baseline tanpa koordinat, menembus batas awal model ke arah nilai yang lebih fisis dan optimal.
+> Dengan mengisolasi kebocoran spasial, kita mengidentifikasi kemampuan transfer spasial model yang sesungguhnya. Melalui rekayasa fitur **Weather Lags** (menangkap inersia atmosfer) dan algoritma **Extra Trees** teroptimasi, kita berhasil mendongkrak $R^2$ spasial global sebesar **+6.06%** dari baseline tanpa koordinat, menembus batas awal model ke arah nilai yang lebih fisis dan optimal.
 
 ---
 
@@ -54,7 +54,7 @@ Untuk mengatasi keterbatasan ekstrapolasi koordinat ini dan meningkatkan kemampu
 
 > [!IMPORTANT]
 > **Keputusan Desain Akhir**:
-> Model final RFR yang dilatih dan disimpan di [pm25_rfr_model.pkl](../data/pm25_rfr_model.pkl) **resmi menggunakan pendekatan Tanpa Koordinat dengan Fitur Lag Cuaca (Coordinate-Free RFR with Weather Lags)**.
+> Model final RFR yang dilatih dan disimpan di [pm25_rfr_model.pkl](../data/pm25_rfr_model.pkl) **resmi menggunakan pendekatan Dengan Koordinat dan Fitur Lag Cuaca (RFR with Coordinates and Weather Lags)**, karena koordinat terbukti berfungsi sebagai rujukan spasial (spatial anchor) yang memangkas kesalahan harian (MAE) secara dramatis pada lokasi baru.
 
 
 ---
@@ -62,33 +62,39 @@ Untuk mengatasi keterbatasan ekstrapolasi koordinat ini dan meningkatkan kemampu
 
 ## 4. Analisis Feature Importance (Tingkat Kepentingan Fitur)
 
-Tabel berikut menunjukkan seberapa sering suatu fitur dipilih untuk membagi data (*split*) dalam pohon keputusan Random Forest final, berbobot pada penurunan ketidakmurnian (*impurity reduction*):
+Tabel berikut menunjukkan seberapa sering suatu fitur dipilih untuk membagi data (*split*) dalam pohon keputusan Random Forest final (Tuned RFR Model + Coords + Lags), berbobot pada penurunan ketidakmurnian (*impurity reduction*):
+
+![Feature Importance Random Forest Regressor](../results/images/feature_importance_rfr.png)
 
 | Rank | Fitur | Importance | Deskripsi & Penjelasan Fisis |
 | :---: | :--- | :---: | :--- |
-| 1 | `v_wind` | 0.3256 | Komponen angin Utara-Selatan (Monsoon & Sea Breeze). Sangat krusial bagi Jakarta yang berada di pesisir utara Jawa. |
-| 2 | `jam` | 0.2062 | Waktu harian. Mewakili siklus aktivitas manusia (kemacetan jam berangkat/pulang kerja) dan dinamika batas atmosfer (PBL). |
-| 3 | `bulan` | 0.1214 | Waktu bulanan. Mewakili variasi musiman di Indonesia (Musim Kemarau vs Musim Hujan). |
-| 4 | `latitude` | 0.0847 | Posisi Lintang. Menunjukkan gradien polusi Utara-Selatan (pesisir industri vs daerah sub-urban hijau). |
-| 5 | `surface_pressure` | 0.0390 | Tekanan udara di permukaan. Berhubungan erat dengan stabilitas atmosfer (inversi polutan). |
-| 6 | `relative_humidity_2m`| 0.0383 | Kelembaban relatif. Humiditas tinggi memicu pertumbuhan higroskopis PM2.5. |
-| 7 | `dew_point_2m` | 0.0328 | Titik embun. Mengukur kejenuhan air di udara. |
-| 8 | `u_wind` | 0.0313 | Komponen angin Barat-Timur. Membawa polutan secara lateral lintas wilayah Jakarta. |
-| 9 | `apparent_temperature`| 0.0277 | Suhu semu yang dirasakan (gabungan suhu dan kelembaban). |
-| 10 | `hari_dalam_minggu` | 0.0252 | Siklus mingguan. Membedakan pola emisi hari kerja (tinggi) vs akhir pekan (rendah). |
-| 11 | `temperature_2m` | 0.0218 | Suhu udara aktual pada ketinggian 2 meter. |
-| 12 | `cloud_cover_total` | 0.0211 | Tutupan awan. Memengaruhi radiasi matahari yang masuk untuk fotokimia PM2.5. |
-| 13 | `precipitation` | 0.0091 | Total presipitasi (akumulasi air). |
-| 14 | `rain` | 0.0089 | Curah hujan cair. Berkontribusi kecil karena efek pencucian udara bersifat biner. |
-| 15 | `is_weekend` | 0.0028 | Flag akhir pekan (Sabtu/Minggu). |
-| 16 | `AOD` | **0.0024** | **Aerosol Optical Depth (Himawari-9)**. |
-| 17 | `longitude` | 0.0018 | Posisi Bujur. Memberikan informasi koordinat barat-timur. |
+| 1 | `v_wind_lag1` | 0.1424 | Komponen angin Utara-Selatan tertunda 1 jam. Menunjukkan inersia atmosfer sirkulasi angin laut/darat. |
+| 2 | `v_wind` | 0.1321 | Komponen angin Utara-Selatan (Monsoon & Sea Breeze). Sangat krusial bagi Jakarta di pesisir utara. |
+| 3 | `bulan` | 0.1123 | Waktu bulanan. Mewakili variasi musiman (Musim Kemarau vs Musim Hujan) di Indonesia. |
+| 4 | `jam` | 0.0900 | Waktu harian. Mewakili siklus aktivitas manusia (kemacetan lalu lintas) dan dinamika PBL. |
+| 5 | `latitude` | 0.0595 | Posisi Lintang. Menunjukkan gradien polusi spasial Utara-Selatan (pantai/industri vs selatan hijau). |
+| 6 | `temperature_2m` | 0.0483 | Suhu udara aktual pada ketinggian 2 meter. Memengaruhi kestabilan kolom udara. |
+| 7 | `temp_lag1` | 0.0448 | Suhu udara tertunda 1 jam. Menangkap efek termal akumulatif udara. |
+| 8 | `relative_humidity_2m` | 0.0445 | Kelembaban relatif. Memicu pertumbuhan higroskopis partikulat aerosol PM2.5. |
+| 9 | `surface_pressure` | 0.0434 | Tekanan udara permukaan. Berhubungan erat dengan sistem tekanan rendah/tinggi polutan. |
+| 10 | `rh_lag1` | 0.0381 | Kelembaban relatif tertunda 1 jam. Menangkap riwayat kebasahan udara sekitar. |
+| 11 | `u_wind_lag1` | 0.0373 | Komponen angin Barat-Timur tertunda 1 jam. Menangkap adveksi lateral tertunda. |
+| 12 | `u_wind` | 0.0356 | Komponen angin Barat-Timur. Membawa polutan secara lateral lintas wilayah Jakarta. |
+| 13 | `apparent_temperature` | 0.0353 | Suhu semu (gabungan temperatur dan humiditas) yang dirasakan. |
+| 14 | `dew_point_2m` | 0.0310 | Titik embun. Ukuran kejenuhan uap air di udara. |
+| 15 | `cloud_cover_total` | 0.0289 | Tutupan awan total. Menentukan intensitas radiasi matahari untuk reaksi fotokimia. |
+| 16 | `hari_dalam_minggu` | 0.0204 | Hari dalam seminggu. Membedakan fluktuasi emisi harian (hari kerja vs libur). |
+| 17 | `precipitation` | 0.0198 | Total presipitasi (curahan air dari awan). |
+| 18 | `rain` | 0.0171 | Curah hujan cair. Berkontribusi pada pencucian polutan (*wet deposition*). |
+| 19 | `longitude` | 0.0120 | Posisi Bujur. Memberikan informasi koordinat barat-timur. |
+| 20 | `is_weekend` | 0.0046 | Flag akhir pekan (Sabtu/Minggu). |
+| 21 | `AOD` | **0.0028** | **Aerosol Optical Depth (Himawari-9)**. |
 
 ---
 
-## 5. Mengapa Fitur AOD Memiliki Importance Sangat Rendah (0.24%)?
+## 5. Mengapa Fitur AOD Memiliki Importance Sangat Rendah (0.28%)?
 
-Meskipun secara teori AOD satelit adalah prediktor terbaik untuk PM2.5 karena mengukur kolom aerosol secara langsung dari luar angkasa, dalam model final kepentingannya hanya **0.24%**. Hal ini disebabkan oleh:
+Meskipun secara teori AOD satelit adalah prediktor terbaik untuk PM2.5 karena mengukur kolom aerosol secara langsung dari luar angkasa, dalam model final kepentingannya hanya **0.28%**. Hal ini disebabkan oleh:
 
 1. **Persentase Data Kosong yang Ekstrim (91.31% NaNs)**
    AOD Himawari-9 hanya tersedia pada siang hari yang cerah. Di Jakarta, awan tebal sangat sering menutupi langit, menyebabkan 91.31% baris data memiliki nilai AOD kosong yang diimputasi dengan nilai sentinel `-999.0`.
@@ -107,6 +113,8 @@ Untuk mendapatkan performa model tertinggi yang kebal terhadap noise dan batasan
 
 ### 📊 Hasil Tuning Parameter Terbaik (Extra Trees)
 
+![Feature Importance Extra Trees Regressor](../results/images/feature_importance_etr.png)
+
 * **Skor $R^2$ Validasi Spasial Terbaik**: **`0.2191`** (Meningkat dari baseline tanpa koordinat `0.1629` dan RFR Tuned `0.1747`).
 * **Kombinasi Parameter Terpilih (Best Parameters)**:
   * `n_estimators`: **`200`** (Jumlah pohon keputusan yang lebih banyak membantu meredam variansi prediksi spasial).
@@ -115,6 +123,6 @@ Untuk mendapatkan performa model tertinggi yang kebal terhadap noise dan batasan
   * `min_samples_split`: **`5`** (Mencegah overfitting berlebihan pada level noise mikro).
 
 > [!NOTE]
-> Berdasarkan keunggulan performa spasial ini, **Extra Trees Regressor teroptimasi ditetapkan sebagai model final** dan disimpan di [pm25_rfr_model.pkl](file:///c:/Users/LENOVO/Documents/0_Tugas%20Kuliah/Project/spatial-pm25-estimator/data/pm25_rfr_model.pkl) (menggantikan model RFR lama). Nama file model dipertahankan agar tidak mengganggu integritas pipeline Phase 5 (Mapping).
+> Meskipun Extra Trees Regressor (ETR) memiliki skor Group-LOSOCV $R^2$ yang lebih tinggi pada skenario tanpa koordinat, validasi harian independen pada hari netral (18 Juni 2025) menunjukkan bahwa **Random Forest Regressor (RFR) Tuned dengan Koordinat + Lags** menghasilkan error terkecil (MAE: 23.70 µg/m³ dan RMSE: 26.81 µg/m³). Oleh karena itu, **RFR Tuned dengan Koordinat + Lags secara resmi dipilih sebagai model final** dan disimpan di [pm25_rfr_model.pkl](file:///c:/Users/LENOVO/Documents/0_Tugas%20Kuliah/Project/spatial-pm25-estimator/data/pm25_rfr_model.pkl). ETR juga disimpan di [pm25_etr_model.pkl](file:///c:/Users/LENOVO/Documents/0_Tugas%20Kuliah/Project/spatial-pm25-estimator/data/pm25_etr_model.pkl) sebagai pembanding visual di Phase 5.
 
 
