@@ -79,8 +79,8 @@ Dataset siap latih (`data/model_ready_data.csv`) terdiri dari data cuaca primer 
 
 ### 3. Fitur Hasil Rekayasa (*Feature Engineering*)
 * **Dekomposisi Vektor Angin (Trigonometris)**:
-  * **`u_wind`**: Komponen kecepatan angin Timur-Barat (zonal wind). Hasil dekomposisi kecepatan angin (`wind_speed_10m`) dan arah angin derajat (`wind_direction_10m`) menggunakan $\cos$.
-  * **`v_wind`**: Komponen kecepatan angin Utara-Selatan (meridional wind). Hasil dekomposisi menggunakan $\sin$.
+  * **`u_wind`**: Komponen kecepatan angin Timur-Barat (zonal wind). Hasil dekomposisi kecepatan angin (`wind_speed_10m`) dan arah angin derajat (`wind_direction_10m`) menggunakan fungsi cosinus (cos).
+  * **`v_wind`**: Komponen kecepatan angin Utara-Selatan (meridional wind). Hasil dekomposisi menggunakan fungsi sinus (sin).
 * **Inersia Atmosfer (1-Hour Weather Lags)**:
   * **`temp_lag1`**: Suhu udara tertunda 1 jam sebelumnya.
   * **`rh_lag1`**: Kelembaban relatif tertunda 1 jam sebelumnya.
@@ -189,14 +189,14 @@ Sebelum menulis kode API, pengembang backend wajib memahami asal-usul dari 21 fi
 *   **C. Dihitung secara Programmatic di Backend (Feature Engineering)**:
     *   **Koordinat Titik Target**: `latitude` dan `longitude` stasiun atau koordinat piksel grid Jakarta.
     *   **Dekomposisi Vektor Angin**:
-        *   `u_wind` = `wind_speed_10m` $\times \cos(\text{radian wind\_direction\_10m})$
-        *   `v_wind` = `wind_speed_10m` $\times \sin(\text{radian wind\_direction\_10m})$
+        *   `u_wind` = `wind_speed_10m * cos(radian_wind_direction_10m)`
+        *   `v_wind` = `wind_speed_10m * sin(radian_wind_direction_10m)`
         *   *Catatan: Radian diperoleh dari `(derajat * pi) / 180`*.
     *   **Inersia Atmosfer (Weather Lags 1 Jam Sebelumnya)**:
-        *   `temp_lag1` = `temperature_2m` pada jam $T-1$
-        *   `rh_lag1` = `relative_humidity_2m` pada jam $T-1$
-        *   `u_wind_lag1` = `u_wind` pada jam $T-1$
-        *   `v_wind_lag1` = `v_wind` pada jam $T-1$
+        *   `temp_lag1` = `temperature_2m` pada jam T-1
+        *   `rh_lag1` = `relative_humidity_2m` pada jam T-1
+        *   `u_wind_lag1` = `u_wind` pada jam T-1
+        *   `v_wind_lag1` = `v_wind` pada jam T-1
     *   **Fitur Temporal (Ekstraksi Waktu)**:
         *   `jam` (Format 0-23 UTC), `bulan` (1-12), `hari_dalam_minggu` (0-6, di mana 0 = Senin), dan `is_weekend` (1 jika Sabtu/Minggu, 0 jika hari kerja).
 
@@ -270,4 +270,4 @@ print(f"Prediksi PM2.5 di koordinat tersebut: {estimated_pm25:.2f} µg/m³")
 ### ⚠️ Catatan Penting untuk Backend Developer:
 1. **Urutan Fitur**: Scikit-learn sangat bergantung pada urutan kolom input. DataFrame yang dimasukkan ke `model.predict()` **wajib** diurutkan sesuai urutan dalam array `FEATURE_COLUMNS` di atas.
 2. **Sentinel Value AOD**: AOD Himawari-9 kerap bernilai kosong pada malam hari atau saat hujan tebal. Isi dengan nilai sentinel **`-999.0`** jika tidak ada data dari satelit. Model telah dilatih untuk menangani nilai ini.
-3. **Penyediaan Lag Cuaca**: Fitur lag 1 jam (`temp_lag1`, dll) merujuk ke parameter cuaca pada jam $T-1$. Backend wajib mengambil data cuaca dari histori ERA5/Open-Meteo pada jam sebelumnya untuk melengkapi input ini.
+3. **Penyediaan Lag Cuaca**: Fitur lag 1 jam (`temp_lag1`, dll) merujuk ke parameter cuaca pada jam T-1. Backend wajib mengambil data cuaca dari histori ERA5/Open-Meteo pada jam sebelumnya untuk melengkapi input ini.
