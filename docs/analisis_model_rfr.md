@@ -123,6 +123,6 @@ Untuk mendapatkan performa model tertinggi yang kebal terhadap noise dan batasan
   * `min_samples_split`: **`5`** (Mencegah overfitting berlebihan pada level noise mikro).
 
 > [!NOTE]
-> Meskipun Extra Trees Regressor (ETR) memiliki skor Group-LOSOCV $R^2$ yang lebih tinggi pada skenario tanpa koordinat, validasi harian independen pada hari netral (18 Juni 2025) menunjukkan bahwa **Random Forest Regressor (RFR) Tuned dengan Koordinat + Lags** menghasilkan error terkecil (MAE: 23.70 µg/m³ dan RMSE: 26.81 µg/m³). Oleh karena itu, **RFR Tuned dengan Koordinat + Lags secara resmi dipilih sebagai model final** dan disimpan di [pm25_rfr_model.pkl](file:///c:/Users/LENOVO/Documents/0_Tugas%20Kuliah/Project/spatial-pm25-estimator/data/pm25_rfr_model.pkl). ETR juga disimpan di [pm25_etr_model.pkl](file:///c:/Users/LENOVO/Documents/0_Tugas%20Kuliah/Project/spatial-pm25-estimator/data/pm25_etr_model.pkl) sebagai pembanding visual di Phase 5.
+> Meskipun Extra Trees Regressor (ETR) memiliki skor Group-LOSOCV $R^2$ yang lebih tinggi pada skenario tanpa koordinat, validasi harian independen pada hari netral (18 Juni 2025) menunjukkan bahwa **Random Forest Regressor (RFR) Tuned dengan Koordinat + Lags** menghasilkan error terkecil (MAE: 23.70 µg/m³ dan RMSE: 26.81 µg/m³). Oleh karena itu, **RFR Tuned dengan Koordinat + Lags secara resmi dipilih sebagai model final** dan disimpan di [pm25_rfr_model.pkl](../data/pm25_rfr_model.pkl). ETR juga disimpan di [pm25_etr_model.pkl](../data/pm25_etr_model.pkl) sebagai pembanding visual di Phase 5.
 
 

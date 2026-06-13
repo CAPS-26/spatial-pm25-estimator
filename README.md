@@ -63,7 +63,7 @@ Pustaka berikut sudah terinstal di dalam `.venv`:
 
 ### Fase Berikutnya (Pembersihan, Pemodelan, Visualisasi)
 Saat Anda masuk ke notebook `03`, `04`, atau `05`, Anda perlu menginstal pustaka modeling dan visualisasi. Caranya:
-1. Hapus tanda komentar (`#`) pada pustaka berikut di dalam [requirements.txt](file:///c:/Users/LENOVO/Documents/0_Tugas Kuliah/Project/spatial-pm25-estimator/requirements.txt):
+1. Hapus tanda komentar (`#`) pada pustaka berikut di dalam [requirements.txt](requirements.txt):
    ```text
    scikit-learn
    matplotlib
@@ -75,3 +75,105 @@ Saat Anda masuk ke notebook `03`, `04`, atau `05`, Anda perlu menginstal pustaka
    ```powershell
    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
+
+---
+
+## 🤖 Backend Integration & Model Deployment (.pkl)
+
+Karena berkas model `.pkl` (Pickle) berukuran besar (>500 MB) dan diabaikan oleh Git via `.gitignore`, pengembang backend perlu menyiapkan model tersebut dengan salah satu dari dua cara berikut agar sistem backend/API siap memprediksi PM2.5:
+
+### 1. Cara Memperoleh Berkas Model (`.pkl`)
+
+#### 🔹 Opsi A: Mengunduh dari GitHub Releases (Direkomendasikan untuk Produksi)
+1. Buka halaman repositori Git Anda, lalu masuk ke bagian **Releases**.
+2. Unduh berkas **`pm25_rfr_model.pkl`** (Random Forest final teroptimasi) dan/atau **`pm25_etr_model.pkl`** (Extra Trees).
+3. Buat folder baru bernama `data/` di direktori utama backend Anda jika belum ada.
+4. Letakkan berkas `.pkl` yang telah diunduh ke dalam folder `data/` tersebut:
+   ```text
+   [direktori-utama-backend]/
+   └── data/
+       ├── pm25_rfr_model.pkl
+       └── pm25_etr_model.pkl
+   ```
+
+#### 🔹 Opsi B: Membuat Model Sendiri dari Nol (Generate via Notebook)
+Jika berkas rilis belum tersedia atau Anda ingin memperbarui model dengan data latihan baru:
+1. Buka notebook **`04_Modeling_RFR.ipynb`** menggunakan editor Jupyter (VS Code atau Jupyter Lab).
+2. Pastikan berkas dataset latihan **`data/model_ready_data.csv`** sudah ada (diperoleh dari notebook `03`).
+3. Jalankan semua cell pada notebook tersebut (*Run All*).
+4. Kode akan otomatis melatih model dan menyimpannya ke folder `data/` dengan nama berkas `pm25_rfr_model.pkl` dan `pm25_etr_model.pkl`.
+
+---
+
+### 2. Setup dan Cara Pemuatan Model di Backend (Python)
+
+Pastikan pustaka `joblib` dan `scikit-learn` (versi `1.6.0` atau yang sesuai saat pelatihan) sudah terinstal di lingkungan backend Anda:
+```bash
+pip install joblib scikit-learn pandas numpy
+```
+
+Berikut adalah contoh skrip Python backend untuk memuat model dan melakukan prediksi:
+
+```python
+import os
+import joblib
+import pandas as pd
+
+# 1. Tentukan path model
+MODEL_PATH = os.path.join('data', 'pm25_rfr_model.pkl')
+
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(f"Model pkl tidak ditemukan di: {MODEL_PATH}. Silakan unduh dari GitHub Release.")
+
+# 2. Muat model
+model = joblib.load(MODEL_PATH)
+print("✓ Model Random Forest Regressor berhasil dimuat.")
+
+# 3. Definisikan 21 Fitur Latihan (Urutan Wajib Sama Persis)
+FEATURE_COLUMNS = [
+    'latitude', 'longitude', 
+    'temperature_2m', 'apparent_temperature', 'relative_humidity_2m',
+    'dew_point_2m', 'precipitation', 'rain', 'surface_pressure',
+    'cloud_cover_total', 'u_wind', 'v_wind', 'jam', 'bulan',
+    'hari_dalam_minggu', 'is_weekend', 'AOD',
+    'v_wind_lag1', 'u_wind_lag1', 'temp_lag1', 'rh_lag1'
+]
+
+# 4. Contoh data input API (Contoh 1 baris prediksi)
+# Backend wajib memastikan semua input fitur ini sudah terisi dan diinterpolasi spasial-temporal
+input_data = {
+    'latitude': -6.1878,
+    'longitude': 106.7264,
+    'temperature_2m': 28.5,
+    'apparent_temperature': 31.2,
+    'relative_humidity_2m': 78.0,
+    'dew_point_2m': 24.1,
+    'precipitation': 0.0,
+    'rain': 0.0,
+    'surface_pressure': 1008.2,
+    'cloud_cover_total': 45.0,
+    'u_wind': 1.2,
+    'v_wind': -2.5,
+    'jam': 12,                    # Format 24 Jam
+    'bulan': 6,                   # Juni
+    'hari_dalam_minggu': 2,       # Selasa (0-6)
+    'is_weekend': 0,              # False (0)
+    'AOD': 0.35,                  # Jika mendung/malam, isi dengan sentinel -999.0
+    'v_wind_lag1': -2.1,          # Lag cuaca 1 jam sebelumnya
+    'u_wind_lag1': 1.0,
+    'temp_lag1': 27.9,
+    'rh_lag1': 80.0
+}
+
+# Convert ke DataFrame dengan urutan kolom yang benar
+df_input = pd.DataFrame([input_data])[FEATURE_COLUMNS]
+
+# 5. Lakukan estimasi
+estimated_pm25 = model.predict(df_input)[0]
+print(f"Prediksi PM2.5 di koordinat tersebut: {estimated_pm25:.2f} µg/m³")
+```
+
+### ⚠️ Catatan Penting untuk Backend Developer:
+1. **Urutan Fitur**: Scikit-learn sangat bergantung pada urutan kolom input. DataFrame yang dimasukkan ke `model.predict()` **wajib** diurutkan sesuai urutan dalam array `FEATURE_COLUMNS` di atas.
+2. **Sentinel Value AOD**: AOD Himawari-9 kerap bernilai kosong pada malam hari atau saat hujan tebal. Isi dengan nilai sentinel **`-999.0`** jika tidak ada data dari satelit. Model telah dilatih untuk menangani nilai ini.
+3. **Penyediaan Lag Cuaca**: Fitur lag 1 jam (`temp_lag1`, dll) merujuk ke parameter cuaca pada jam $T-1$. Backend wajib mengambil data cuaca dari histori ERA5/Open-Meteo pada jam sebelumnya untuk melengkapi input ini.
