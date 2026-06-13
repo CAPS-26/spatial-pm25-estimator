@@ -4,6 +4,15 @@ Proyek ini bertujuan untuk mengestimasi konsentrasi PM2.5 di wilayah Daerah Khus
 
 ---
 
+## 📌 Daftar Isi
+1. [Struktur Proyek Modular](#-struktur-proyek-modular)
+2. [Hasil Akhir Model (Model Performance)](#-hasil-akhir-model-model-performance)
+3. [Panduan Memulai (Setup)](#%EF%B8%8F-panduan-memulai-setup)
+4. [Manajemen Dependensi (requirements.txt)](#-manajemen-dependensi-requirementstxt)
+5. [Backend Integration & Model Deployment (.pkl)](#-backend-integration--model-deployment-pkl)
+
+---
+
 ## 📂 Struktur Proyek Modular
 
 Untuk menjaga efisiensi memori RAM dan menghindari kontaminasi variabel, pipeline proyek ini dibagi menjadi 5 notebook Jupyter terpisah:
@@ -27,6 +36,25 @@ Untuk menjaga efisiensi memori RAM dan menghindari kontaminasi variabel, pipelin
 5. **`05_Spatial_Prediction_and_Mapping.ipynb`**
    * **Fokus:** Membuat grid spasial 1km x 1km Jakarta, memprediksi PM2.5 pada seluruh titik grid, dan memvisualisasikan peta sebaran polusi menggunakan peta interaktif (*Folium/Matplotlib*).
    * **Output:** Peta polusi spasial Jakarta.
+
+---
+
+## 🏆 Hasil Akhir Model (Model Performance)
+
+Berdasarkan hasil validasi harian pada tanggal netral (**18 Juni 2025**), model **Random Forest Regressor (RFR) Tuned dengan Koordinat + Weather Lags** terpilih sebagai model terbaik dengan performa sebagai berikut:
+
+* **MAE Harian**: **`23.70 µg/m³`**
+* **RMSE Harian**: **`26.81 µg/m³`**
+
+### 📊 Kurva Validasi Harian (Diurnal Trend)
+Model sangat akurat dalam mendeteksi tren naik-turun konsentrasi harian serta puncak polusi malam hari:
+
+![Tren Harian PM2.5 Kembangan - 18 Juni 2025](results/images/daily_validation_coords_comparison.png)
+
+### 🗺️ Peta Distribusi Spasial PM2.5 Jakarta (Resolusi 1km)
+Perbandingan pemetaan spasial Jakarta menunjukkan model RFR mampu melokalisasi polusi dengan membagi wilayah Jakarta Utara (bersih) dan Jakarta Selatan (tinggi) secara spasial:
+
+![Perbandingan Distribusi Spasial PM2.5 Jakarta](results/images/jakarta_pm25_map_comparison.png)
 
 ---
 
