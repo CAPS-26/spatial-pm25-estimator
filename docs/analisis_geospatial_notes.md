@@ -11,6 +11,8 @@ Berdasarkan matriks korelasi Pearson yang diuji pada data PM2.5 dari Open-Meteo 
 * **Grup 1 (Slipi, Menteng, Kelapa Gading Indah)** memiliki nilai PM2.5 yang identik (korelasi **`1.000`**).
 * **Grup 2 (Jagakarsa, Jatinegara)** memiliki nilai PM2.5 yang identik (korelasi **`1.000`**).
 
+![Heatmap Korelasi PM2.5](../results/images/pm25_correlation.png)
+
 ### 💡 Penjelasan Ilmiah
 Open-Meteo Air Quality API tidak mengambil data dari sensor fisik di tanah Jakarta, melainkan mengambil data dari **CAMS (Copernicus Atmosphere Monitoring Service)**. CAMS adalah model simulasi kimia atmosfer global yang dijalankan oleh superkomputer ECMWF di Eropa.
 * **Resolusi Spasial CAMS**: Model CAMS memiliki resolusi spasial yang cukup kasar, yaitu sekitar **0.4° (sekitar 40 km)**.
@@ -25,6 +27,9 @@ Berbeda dengan data PM2.5, data cuaca dari Open-Meteo menunjukkan variasi spasia
 * Korelasi suhu antar stasiun bernilai sangat tinggi (`0.94` s.d. `0.99`), tetapi **tidak identik (tidak duplikat)**, kecuali untuk Menteng dan Jatinegara yang masih masuk dalam satu grid.
 * **Jagakarsa (Jakarta Selatan)** memiliki rata-rata suhu terdingin (`26.73 °C`) karena faktor ketinggian geografis dan banyaknya vegetasi.
 * **Kelapa Gading Indah (Jakarta Utara)** memiliki rata-rata kecepatan angin paling kencang (`7.44 km/jam`) karena dekat dengan garis pantai (pengaruh angin laut).
+
+![Heatmap Korelasi Suhu](../results/images/weather_temp_correlation.png)
+
 
 ### 💡 Penjelasan Ilmiah
 Open-Meteo mengambil data cuaca dari model reanalisis **ERA5** (resolusi ~30 km) dan menerapkan **Bilinear Interpolation** secara otomatis berdasarkan koordinat asli yang kita minta. Hal ini menghasilkan variasi cuaca lokal yang lebih halus (tidak kaku seperti snapping pada model kualitas udara CAMS).
