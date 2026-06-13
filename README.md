@@ -7,9 +7,11 @@ Proyek ini bertujuan untuk mengestimasi konsentrasi PM2.5 di wilayah Daerah Khus
 ## 📌 Daftar Isi
 1. [Struktur Proyek Modular](#-struktur-proyek-modular)
 2. [Hasil Akhir Model (Model Performance)](#-hasil-akhir-model-model-performance)
-3. [Panduan Memulai (Setup)](#%EF%B8%8F-panduan-memulai-setup)
-4. [Manajemen Dependensi (requirements.txt)](#-manajemen-dependensi-requirementstxt)
-5. [Backend Integration & Model Deployment (.pkl)](#-backend-integration--model-deployment-pkl)
+3. [Variabel Prediktor & Rekayasa Fitur (Features & Engineering)](#-variabel-prediktor--rekayasa-fitur-features--engineering)
+4. [Panduan Memulai (Setup)](#%EF%B8%8F-panduan-memulai-setup)
+5. [Manajemen Dependensi (requirements.txt)](#-manajemen-dependensi-requirementstxt)
+6. [Backend Integration & Model Deployment (.pkl)](#-backend-integration--model-deployment-pkl)
+7. [Analisis Perbandingan dengan Penelitian Pendahulu](docs/perbandingan_penelitian.md)
 
 ---
 
@@ -55,6 +57,42 @@ Model sangat akurat dalam mendeteksi tren naik-turun konsentrasi harian serta pu
 Perbandingan pemetaan spasial Jakarta menunjukkan model RFR mampu melokalisasi polusi dengan membagi wilayah Jakarta Utara (bersih) dan Jakarta Selatan (tinggi) secara spasial:
 
 ![Perbandingan Distribusi Spasial PM2.5 Jakarta](results/images/jakarta_pm25_map_comparison.png)
+
+---
+
+## 📊 Variabel Prediktor & Rekayasa Fitur (Features & Engineering)
+
+Dataset siap latih (`data/model_ready_data.csv`) terdiri dari data cuaca primer hasil ekstraksi Open-Meteo, data satelit Himawari-9, serta fitur hasil rekayasa (*feature engineering*) untuk menjaga integritas fisis atmosfer Jakarta:
+
+### 1. Fitur Cuaca Primer (Open-Meteo API)
+* **`temperature_2m`**: Suhu udara aktual pada ketinggian 2 meter (°C).
+* **`apparent_temperature`**: Suhu semu/apparent temperature (°C) yang dirasakan.
+* **`relative_humidity_2m`**: Kelembaban relatif udara pada ketinggian 2 meter (%).
+* **`dew_point_2m`**: Titik embun uap air udara pada ketinggian 2 meter (°C).
+* **`precipitation`**: Total presipitasi (akumulasi curah hujan cair & padat) (mm).
+* **`rain`**: Curah hujan cair (mm).
+* **`surface_pressure`**: Tekanan udara di permukaan tanah (hPa).
+* **`cloud_cover_total`**: Tutupan awan total (%).
+
+### 2. Fitur Satelit Primer (JAXA Himawari-9 FLDK)
+* **`AOD`** (*Aerosol Optical Depth*): Ketebalan optik aerosol di kolom atmosfer.
+
+### 3. Fitur Hasil Rekayasa (*Feature Engineering*)
+* **Dekomposisi Vektor Angin (Trigonometris)**:
+  * **`u_wind`**: Komponen kecepatan angin Timur-Barat (zonal wind). Hasil dekomposisi kecepatan angin (`wind_speed_10m`) dan arah angin derajat (`wind_direction_10m`) menggunakan $\cos$.
+  * **`v_wind`**: Komponen kecepatan angin Utara-Selatan (meridional wind). Hasil dekomposisi menggunakan $\sin$.
+* **Inersia Atmosfer (1-Hour Weather Lags)**:
+  * **`temp_lag1`**: Suhu udara tertunda 1 jam sebelumnya.
+  * **`rh_lag1`**: Kelembaban relatif tertunda 1 jam sebelumnya.
+  * **`u_wind_lag1`**: Komponen angin Timur-Barat tertunda 1 jam sebelumnya.
+  * **`v_wind_lag1`**: Komponen angin Utara-Selatan tertunda 1 jam sebelumnya.
+* **Jangkar Spasial (Spatial Anchor)**:
+  * **`latitude`** & **`longitude`**: Koordinat lintang dan bujur stasiun asli untuk melokalisasi prediksi spasial di luar stasiun latih.
+* **Fitur Temporal (Siklus Waktu)**:
+  * **`jam`**: Jam UTC (0-23) untuk menangkap fluktuasi harian batas atmosfer (PBL) dan aktivitas emisi kendaraan.
+  * **`bulan`**: Bulan (1-12) untuk mendeteksi variasi musim (kemarau vs hujan).
+  * **`hari_dalam_minggu`**: Hari dalam seminggu (0-6, Senin-Minggu) untuk membedakan emisi hari kerja vs akhir pekan.
+  * **`is_weekend`**: Flag biner akhir pekan (1 jika Sabtu/Minggu, 0 jika Senin-Jumat).
 
 ---
 
@@ -135,10 +173,38 @@ Jika berkas rilis belum tersedia atau Anda ingin memperbarui model dengan data l
 
 ### 2. Setup dan Cara Pemuatan Model di Backend (Python)
 
+Sebelum menulis kode API, pengembang backend wajib memahami asal-usul dari 21 fitur input model RFR untuk disiapkan di database/runtime backend:
+
+*   **A. Diambil Langsung dari Open-Meteo Weather API**:
+    *   `temperature_2m` (Suhu udara, °C)
+    *   `apparent_temperature` (Suhu semu, °C)
+    *   `relative_humidity_2m` (Kelembaban relatif, %)
+    *   `dew_point_2m` (Titik embun, °C)
+    *   `precipitation` (Presipitasi, mm)
+    *   `rain` (Curah hujan, mm)
+    *   `surface_pressure` (Tekanan permukaan, hPa)
+    *   `cloud_cover_total` (Tutupan awan, %)
+*   **B. Diambil dari Citra Satelit JAXA Himawari-9**:
+    *   `AOD` (*Aerosol Optical Depth*). Jika data AOD kosong akibat malam/mendung, **wajib diisi sentinel value `-999.0`**.
+*   **C. Dihitung secara Programmatic di Backend (Feature Engineering)**:
+    *   **Koordinat Titik Target**: `latitude` dan `longitude` stasiun atau koordinat piksel grid Jakarta.
+    *   **Dekomposisi Vektor Angin**:
+        *   `u_wind` = `wind_speed_10m` $\times \cos(\text{radian wind\_direction\_10m})$
+        *   `v_wind` = `wind_speed_10m` $\times \sin(\text{radian wind\_direction\_10m})$
+        *   *Catatan: Radian diperoleh dari `(derajat * pi) / 180`*.
+    *   **Inersia Atmosfer (Weather Lags 1 Jam Sebelumnya)**:
+        *   `temp_lag1` = `temperature_2m` pada jam $T-1$
+        *   `rh_lag1` = `relative_humidity_2m` pada jam $T-1$
+        *   `u_wind_lag1` = `u_wind` pada jam $T-1$
+        *   `v_wind_lag1` = `v_wind` pada jam $T-1$
+    *   **Fitur Temporal (Ekstraksi Waktu)**:
+        *   `jam` (Format 0-23 UTC), `bulan` (1-12), `hari_dalam_minggu` (0-6, di mana 0 = Senin), dan `is_weekend` (1 jika Sabtu/Minggu, 0 jika hari kerja).
+
 Pastikan pustaka `joblib` dan `scikit-learn` (versi `1.6.0` atau yang sesuai saat pelatihan) sudah terinstal di lingkungan backend Anda:
 ```bash
 pip install joblib scikit-learn pandas numpy
 ```
+
 
 Berikut adalah contoh skrip Python backend untuk memuat model dan melakukan prediksi:
 
